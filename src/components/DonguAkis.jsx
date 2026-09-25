@@ -2,12 +2,14 @@ import React from 'react';
 import { useDil, useSayi } from '../i18n';
 import Oynatici from './sahne/Oynatici';
 import { HEAD, SANS, MONO, C, B, c01, lerp, MOTION, blend, zamanCizelgesi } from './sahne/ortak';
+import { DONGU } from '../veri/ornekler';
 
 // "VOI basligi ne zaman devreye girer" animasyonu. Soru sorma dongusunu
 // kutu-ok semasi olarak gosterir: mesaj -> model (p + VOI) -> VOI > c? ->
 // slotu sor -> cevap eklenip model yeniden calisir; VOI esigin altina
 // dusunce (ya da soru hakki bitince) cikis: karar ver ya da devret.
-// Sayilar telecom_support/00118 orneginin gercek model ciktisi.
+// Sayilar gercek model ciktisi; ornek veri/ornekler.js'te, secili modele gore
+// (EN telecom_support/00118, TR sgk_işlemleri/00115).
 
 // ---- zaman cizelgesi ----
 const SAHNELER = [
@@ -29,29 +31,10 @@ const CIKIS = { kontrol: 4.2, karar: 5.2 };  // son dongude (Loop2) cikis adimla
 const C_ESIK = 0.05;
 const BUTCE = 2;
 
-// ---- ornek verisi (telecom_support/00118) ----
-const OPTIONS = ['technical_support', 'billing', 'sales', 'retention', 'roaming', 'field_technicians'];
-const U = 1 / 6;
-const PROBS = [
-  Object.fromEntries(OPTIONS.map((o) => [o, U])),
-  { sales: 0.2731, billing: 0.2243, field_technicians: 0.1579, retention: 0.1252, technical_support: 0.1238, roaming: 0.0958 },
-  { billing: 0.8496, roaming: 0.1504, retention: 0, sales: 0, technical_support: 0, field_technicians: 0 },
-  { roaming: 1, billing: 0, technical_support: 0, field_technicians: 0, retention: 0, sales: 0 },
-];
-const SLOTS = ['request', 'location', 'service', 'tenure', 'customer_name'];
-const VOI = [
-  { service: 0, request: 0, tenure: 0, location: 0, customer_name: 0 },
-  { request: 0.3665, location: 0.0695, service: 0.0543, tenure: 0.007, customer_name: 0.002 },
-  { request: 0, location: 0.1849, service: 0.0429, tenure: 0.0051, customer_name: 0.0003 },
-  { request: 0, location: 0, service: 0, tenure: 0, customer_name: 0 },
-];
 const VMAX = 0.4;
-// Her dongude sorulan slot, sorusu ve musterinin cevabi.
-const SORULAR = [
-  { slot: 'request', voi: 0.366, q: 'What can I help you with today?', a: 'Hi, I have a question about my bill.' },
-  { slot: 'location', voi: 0.185, q: 'Are you at home right now or travelling abroad?', a: 'I am currently travelling abroad.' },
-];
-const ILK_MESAJ = 'Hello, I need some help with something. Please let me know how I can proceed.';
+// Secili modelin ornegi; bilesenler useO() ile okur.
+const OrnekCtx = React.createContext(null);
+const useO = () => React.useContext(OrnekCtx);
 
 // ---- yerlesim ----
 // Genis (1920x1080) ve dar (640 genislik) sahne icin kutu ve ok koordinatlari.
@@ -150,7 +133,7 @@ function etkin(T) {
 
 // Sorulmus slotlar ve kullanilan soru hakki.
 const sorulduAn = (i) => LOOPS[i] + AN.sor;
-const soruSayisi = (T) => SORULAR.filter((_, i) => T >= sorulduAn(i)).length;
+const soruSayisi = (T, sorular) => sorular.filter((_, i) => T >= sorulduAn(i)).length;
 
 // ---- dil ----
 // Etiketler aktif dilde; modelin kendi girdi/ciktilari (mesajlar, sorular,
@@ -246,7 +229,7 @@ function Baslik({ T, G, dar }) {
   const { M } = useM();
   const e = MOTION.enter(T, 0.1, 0.8);
   const k = hangiLoop(T);
-  const n = soruSayisi(T);
+  const n = soruSayisi(T, useO().sorular);
   const donguler = (
     <div style={{ display: 'flex', background: C.ink, gap: 2, border: B }}>
       {[0, 1, 2].map((i) => (
@@ -284,6 +267,7 @@ function Baslik({ T, G, dar }) {
 
 function Sema({ T, G, dar }) {
   const { M, n } = useM();
+  const { sorular: SORULAR, kazanan, kazananP } = useO();
   const c = n(C_ESIK, 2);
   const k = hangiLoop(T);
   const t = k >= 0 ? T - LOOPS[k] : -1;
@@ -329,7 +313,7 @@ function Sema({ T, G, dar }) {
       <Blok r={G.kutu.kontrol} baslik={`VOI > ${c}?`} alt={kontrolAlt} aktif={ak === 'kontrol'} e={pE} />
       <Blok r={G.kutu.sor} baslik={M.slotuSor} alt={sorAlt} aktif={ak === 'sor'} e={pE} />
       <Blok r={G.kutu.hkontrol} baslik="1 − max p > c_h?" formul alt={hk ? `1 − ${n(1, 2)} = ${n(0, 2)} → ${M.hayirK}` : M.haalaEmin} aktif={ak === 'hkontrol'} vurgu={C.cobalt} e={cE} />
-      <Blok r={G.kutu.karar} baslik={M.kararVer} alt={karar ? (dar ? 'roaming ✓' : `roaming · p = ${n(1, 2)} ✓`) : 'argmax p'} aktif={karar} vurgu={C.cobalt} e={cE} />
+      <Blok r={G.kutu.karar} baslik={M.kararVer} alt={karar ? (dar || kazanan.length > 12 ? `${kazanan} ✓` : `${kazanan} · p = ${n(kazananP, 2)} ✓`) : 'argmax p'} aktif={karar} vurgu={C.cobalt} e={cE} />
       <Blok r={G.kutu.devret} baslik={M.devret} alt={M.insana} soluk={karar} e={cE} />
 
       <OkEtiketi p={G.etiket.evet} e={evetE} color={C.green}>{M.EVET}</OkEtiketi>
@@ -350,6 +334,7 @@ function Sema({ T, G, dar }) {
 
 function Durum({ T, G }) {
   const { M, n, pct } = useM();
+  const { secenekler: OPTIONS, p: PROBS, slotlar: SLOTS, voi: VOI, sorular: SORULAR, ilkMesaj: ILK_MESAJ, secSutun, slotSutun } = useO();
   const e = MOTION.enter(T, 1.2, 0.7);
   const vb = blend(T, LOOPS.map((l) => l + AN.model + 0.2), 1.0);
   const pb = vb;
@@ -392,7 +377,7 @@ function Durum({ T, G }) {
           {top3.map((o, i) => {
             const kazanan = karar && i === 0;
             return (
-              <div key={i} style={{ height: 56, background: kazanan ? C.greenLight : C.bg, display: 'grid', gridTemplateColumns: '230px minmax(0,1fr) 100px', gap: 14, alignItems: 'center', padding: '0 18px' }}>
+              <div key={i} style={{ height: 56, background: kazanan ? C.greenLight : C.bg, display: 'grid', gridTemplateColumns: `${secSutun}px minmax(0,1fr) 100px`, gap: 14, alignItems: 'center', padding: '0 18px' }}>
                 <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 600, color: kazanan ? C.cobalt : C.ink, whiteSpace: 'nowrap' }}>{o.id}{kazanan ? ' ✓' : ''}</div>
                 <div style={{ position: 'relative', height: 16, border: B, background: C.bg, boxSizing: 'border-box' }}>
                   <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${c01(o.p) * 100}%`, background: C.cobalt }}></div>
@@ -414,7 +399,7 @@ function Durum({ T, G }) {
             const ust = v > C_ESIK;
             const esikX = (C_ESIK / VMAX) * 100;
             return (
-              <div key={s} style={{ height: 52, background: soruldu ? C.bg2 : C.bg, display: 'grid', gridTemplateColumns: '190px minmax(0,1fr) 100px', gap: 14, alignItems: 'center', padding: '0 18px' }}>
+              <div key={s} style={{ height: 52, background: soruldu ? C.bg2 : C.bg, display: 'grid', gridTemplateColumns: `${slotSutun}px minmax(0,1fr) 100px`, gap: 14, alignItems: 'center', padding: '0 18px' }}>
                 <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 600, color: soruldu || ust ? C.green : C.ink, whiteSpace: 'nowrap' }}>{s}</div>
                 <div style={{ position: 'relative', height: 16, border: B, background: C.bg, boxSizing: 'border-box', opacity: soruldu ? 0.35 : 1 }}>
                   <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${c01(v / VMAX) * 100}%`, background: ust ? C.green : C.bg2 }}></div>
@@ -479,13 +464,15 @@ function Piece({ T, dar }) {
 }
 
 export default function DonguAkis() {
-  const { t } = useDil();
+  const { t, model } = useDil();
   const o = t.voi.ornek;
   return (
-    <Oynatici sahneler={SAHNELER} cues={CUES} toplam={TOPLAM}
-              genis={{ w: GENIS.w, h: GENIS.h }} dar={{ w: DAR.w, h: DAR.h, esik: 860, max: 560 }}
-              durgunKare={DURGUN_KARE} sahneAd={o.sahne} etiket={o.etiket}>
-      {(T, dar) => <Piece T={T} dar={dar} />}
-    </Oynatici>
+    <OrnekCtx.Provider value={DONGU[model]}>
+      <Oynatici key={model} sahneler={SAHNELER} cues={CUES} toplam={TOPLAM}
+                genis={{ w: GENIS.w, h: GENIS.h }} dar={{ w: DAR.w, h: DAR.h, esik: 860, max: 560 }}
+                durgunKare={DURGUN_KARE} sahneAd={o.sahne} etiket={t.voi.kart.etiket}>
+        {(T, dar) => <Piece T={T} dar={dar} />}
+      </Oynatici>
+    </OrnekCtx.Provider>
   );
 }

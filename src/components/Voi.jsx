@@ -55,7 +55,7 @@ export default function Voi() {
 
       <Paragraf>{kalin(v.pGini)}</Paragraf>
 
-      <Kutu baslik={v.ornek.baslik} alt={v.ornek.alt} dipnot={v.ornek.dipnot}>
+      <Kutu baslik={v.kart.baslik} alt={v.kart.alt} dipnot={v.kart.dipnot}>
         <DonguAkis />
       </Kutu>
 

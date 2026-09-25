@@ -1,17 +1,12 @@
 import React from 'react';
-import { useDil, MODEL_AD } from '../i18n';
-
-// Bos birakilan baglanti tiklanamaz ve soluk gorunur; adres hazir olunca
-// doldurmak yeterli.
-const BAGLANTI = {
-  hf: '',
-  paper: '',
-  kod: '',
-};
+import { useDil } from '../i18n';
+import ModelSec from './ModelSec';
 
 export default function Giris() {
   const { t } = useDil();
   const h = t.hero;
+  // Adresler modele gore metinde (t.hero.baglanti); bos olan tiklanamaz ve soluk gorunur.
+  const BAGLANTI = h.baglanti;
 
   const dugmeler = [
     ['hf', h.hfEt, BAGLANTI.hf, <img src={`${import.meta.env.BASE_URL}images/hf.png`} alt="" className="h-4 w-auto" />],
@@ -30,10 +25,9 @@ export default function Giris() {
         </div>
 
         {/* Logo model adini zaten yaziyor; alt metni erisilebilir adi tasiyor. */}
-        <h1 className="ust-gir w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] m-0"
-            style={{ animationDelay: '.08s' }}>
-          <img src={`${import.meta.env.BASE_URL}images/lavoir-logo.png`} alt={MODEL_AD}
-               width="1018" height="344" className="w-full h-auto object-contain block" />
+        <h1 className={`ust-gir w-full ${h.logo.gen} m-0`} style={{ animationDelay: '.08s' }}>
+          <img key={h.logo.src} src={`${import.meta.env.BASE_URL}images/${h.logo.src}`} alt={t.modelAd}
+               width={h.logo.w} height={h.logo.h} className="w-full h-auto object-contain block" />
         </h1>
         <div className="ust-gir font-mono text-sm md:text-base uppercase tracking-[.12em]
                         font-bold text-cobalt-deep" style={{ animationDelay: '.11s' }}>
@@ -66,6 +60,9 @@ export default function Giris() {
           <div className="text-cobalt-deep font-bold mt-1">{h.grup}</div>
         </div>
       </div>
+
+      {/* Model secimi: giris kutusunun hemen altinda */}
+      <ModelSec />
 
       <div className="flex flex-wrap items-baseline justify-between gap-2 font-mono text-xs uppercase
                       tracking-[.14em] text-ink-black/55 border-b-2 border-ink-black pb-2">

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useDil, MODEL_AD } from '../i18n';
+import { useDil } from '../i18n';
 
-// Tek sayfa: menu bolum capalarina gidiyor.
-const CAPALAR = ['giris', 'laya', 'voi', 'veri', 'sonuc', 'kaynak'];
+// Tek sayfa: menu bolum capalarina gidiyor. Capa listesi ve marka etiketi
+// secili modelden (t.navSira, t.modelAd) geliyor; header'in kendisi degismiyor.
 
 export default function Ust() {
-  const { dil, setDil, t } = useDil();
+  const { dil, setDil, t, model, setModel } = useDil();
   const [hash, setHash] = useState(() => window.location.hash || '#giris');
 
   useEffect(() => {
@@ -19,11 +19,11 @@ export default function Ust() {
       <div className="flex justify-between items-center w-full px-6 h-16 max-w-[1100px] mx-auto gap-4">
         <a href="#giris" className="flex items-baseline gap-2 no-underline shrink-0">
           <span className="font-display font-black text-2xl text-ink-black tracking-tighter">MoganAI</span>
-          <span className="font-mono text-xs font-bold uppercase text-cobalt-deep">/ {MODEL_AD}</span>
+          <span className="font-mono text-xs font-bold uppercase text-cobalt-deep">/ {t.modelAd}</span>
         </a>
 
-        <nav className="hidden md:flex gap-5 items-center">
-          {CAPALAR.map((c) => {
+        <nav className="hidden lg:flex gap-4 items-center">
+          {t.navSira.map((c) => {
             const h = '#' + c;
             const aktif = h === hash;
             return (
@@ -37,6 +37,21 @@ export default function Ust() {
           })}
         </nav>
 
+        <div className="flex items-center gap-3 shrink-0">
+        {/* Genis ekranda model anahtari; dar ekranda sayfanin ustundeki kartlar yeterli. */}
+        <div className="hidden xl:flex border-2 border-ink-black" role="group" aria-label={t.modelSec.et}>
+          {['en', 'tr'].map((k) => (
+            <button key={k} type="button" onClick={() => setModel(k)} aria-pressed={model === k}
+                    className={`px-2.5 py-1 font-mono text-[12px] font-bold uppercase transition-colors ${
+                      model === k
+                        ? 'bg-cobalt-deep text-on-primary'
+                        : 'bg-paper-base text-ink-black/60 hover:bg-grain-fill hover:text-ink-black'
+                    }`}>
+              {t.modelSec.kartlar[k].ad}
+            </button>
+          ))}
+        </div>
+
         <div className="flex border-2 border-ink-black shrink-0" role="group" aria-label="Language / Dil">
           {[['tr', 'TR'], ['en', 'EN']].map(([k, e]) => (
             <button key={k} type="button" onClick={() => setDil(k)} aria-pressed={dil === k}
@@ -48,6 +63,7 @@ export default function Ust() {
               {e}
             </button>
           ))}
+        </div>
         </div>
       </div>
     </header>

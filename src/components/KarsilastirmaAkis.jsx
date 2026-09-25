@@ -2,9 +2,11 @@ import React from 'react';
 import { useDil, useSayi } from '../i18n';
 import Oynatici from './sahne/Oynatici';
 import { HEAD, SANS, MONO, C, B, c01, lerp, MOTION, blend, zamanCizelgesi } from './sahne/ortak';
+import { KARSILASTIRMA } from '../veri/ornekler';
 
-// "LAVOIR vs Laya" animasyonu: ayni belirsiz mesaj (ecommerce_returns/00017)
-// iki modele veriliyor. LAVOIR iki soru sorup dogru birime yonlendiriyor;
+// "LAVOIR vs Laya" animasyonu: ayni belirsiz mesaj iki modele veriliyor
+// (ornek veri/ornekler.js'te, secili modele gore: EN ecommerce_returns/00017,
+// TR sgk_işlemleri/00115 ve Laya-multilingual). LAVOIR iki soru sorup dogru birime yonlendiriyor;
 // Laya'nin guveni esigin altinda kaliyor ve konusmayi insana devrediyor.
 // Tasarim aracindaki surumle ayni; outro cikarildi, dar ekranlar icin dikey
 // (640 px) bir yerlesim eklendi.
@@ -26,44 +28,27 @@ const DURGUN_KARE = CUES.Result + 3;
 const GENIS = { w: 1920, h: 1080 };
 const DAR = { w: 640, h: 2360, esik: 860, max: 560 };
 
-const OPTION_IDS = ['returns_desk', 'refunds', 'logistics', 'marketplace_support', 'warranty_service'];
-const U = 1 / 5;
-const UNIFORM = Object.fromEntries(OPTION_IDS.map((id) => [id, U]));
-const LAYA_PROBS = [UNIFORM, { refunds: 0.3568, returns_desk: 0.2901, marketplace_support: 0.2197, warranty_service: 0.0688, logistics: 0.0645 }];
-const LAYA_CONF = 0.1173;
-const LAYA_GUESS = 'refunds';
-const LAVOIR_PROBS = [
-  UNIFORM,
-  { returns_desk: 0.35, logistics: 0.2968, marketplace_support: 0.2873, warranty_service: 0.0657, refunds: 0.0001 },
-  { returns_desk: 0.4511, logistics: 0.4259, warranty_service: 0.1229, refunds: 0, marketplace_support: 0 },
-  { logistics: 1, warranty_service: 0, refunds: 0, returns_desk: 0, marketplace_support: 0 },
-];
-const LAYA_RANK = [OPTION_IDS, Object.keys(LAYA_PROBS[1])];
-const WINNER = 'logistics';
+const THRESHOLD = 0.05;
 const REORDER = true; // Laya seceneklerini olasiliga gore sirala
 
-const SLOTS = [
-  { slot: 'problem', q: 'What is the problem with your order?' },
-  { slot: 'seller', q: 'Was the item sold by us directly or by a seller on our marketplace?' },
-  { slot: 'delivery_age', q: 'When was it delivered: within the last 30 days or earlier?' },
-  { slot: 'wants', q: 'Would you prefer a replacement or your money back?' },
-  { slot: 'customer_name', q: 'May I have your first name, please?' },
-];
-const VOI = [
-  { problem: 0, seller: 0, delivery_age: 0, wants: 0, customer_name: 0 },
-  { seller: 0.1972, problem: 0.1712, delivery_age: 0.0361, wants: 0.0025, customer_name: 0.0013 },
-  { seller: 0, problem: 0.3853, delivery_age: 0.0244, wants: 0.0014, customer_name: 0.0007 },
-  { seller: 0, delivery_age: 0, wants: 0, problem: 0, customer_name: 0 },
-];
-const THRESHOLD = 0.05;
-
-const TEXT = {
-  m0: 'hi, i need help with my recent purchase. i would like a replacement for the item. can you help me with that? thanks',
-  q1: 'Was the item sold by us directly or by a seller on our marketplace?',
-  a1: 'The item was sold by our store.',
-  q2: 'What is the problem with your order?',
-  a2: 'The item arrived damaged.',
-};
+// Secili modelin ornegi; bilesenler useO() ile okur.
+function hazirla(o) {
+  return {
+    ...o,
+    OPTION_IDS: o.secenekler,
+    LAYA_PROBS: o.layaP,
+    LAYA_CONF: o.layaGuven,
+    LAYA_GUESS: o.layaTahmin,
+    LAYA_RANK: [o.secenekler, Object.keys(o.layaP[1])],
+    LAVOIR_PROBS: o.bizP,
+    WINNER: o.kazanan,
+    SLOTS: o.slotlar,
+    VOI: o.voi,
+    TEXT: o.metin,
+  };
+}
+const OrnekCtx = React.createContext(null);
+const useO = () => React.useContext(OrnekCtx);
 
 // Dar sahnede sohbet paneli uzun ilk mesaja yer acmak icin 40 px uzuyor;
 // altindaki paneller ayni miktar asagi kayiyor.
@@ -120,11 +105,12 @@ function Steps({ step, size }) {
 
 function Header({ T, c }) {
   const { M } = useM();
+  const D = useO();
   const dar = useDar();
   const e = MOTION.enter(T, 0.1, 0.8);
   const step = T < c.Step0 ? -1 : T < c.Step1 ? 0 : T < c.Step2 ? 1 : 2;
   const baslik = (size) => (
-    <div style={{ fontFamily: HEAD, fontSize: size, fontWeight: 900, letterSpacing: -2, lineHeight: 1, whiteSpace: 'nowrap' }}>LAVOIR <span style={{ color: C.muted, fontWeight: 800 }}>vs</span> LAYA</div>
+    <div style={{ fontFamily: HEAD, fontSize: D.bizAd.length + D.layaBaslik.length > 12 ? size * 0.72 : size, fontWeight: 900, letterSpacing: -2, lineHeight: 1, whiteSpace: 'nowrap' }}>{D.bizAd} <span style={{ color: C.muted, fontWeight: 800 }}>vs</span> {D.layaBaslik}</div>
   );
   if (dar) {
     // Dar sahnede iki satir: baslik, altinda "ayni girdi" ve adimlar.
@@ -142,7 +128,7 @@ function Header({ T, c }) {
     <div style={{ position: 'absolute', left: 60, right: 60, top: 30, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: B, opacity: e, transform: `translateY(${(1 - e) * -20}px)` }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 22 }}>
         {baslik(52)}
-        <Label color={C.muted}>{M.ayniGirdi} · ecommerce_returns/00017</Label>
+        <Label color={C.muted}>{M.ayniGirdi} · {D.id}</Label>
       </div>
       <Steps step={step} size={22} />
     </div>
@@ -193,10 +179,11 @@ function Chat({ T, msgs, height }) {
 
 function SlotBank({ T, c, vb }) {
   const { M, n } = useM();
+  const { SLOTS, VOI, soru1, soru2, slotSutun } = useO();
   const esik = n(THRESHOLD, 2);
   const dar = useDar();
-  const asked = { seller: c.Ask1 + 0.2, problem: c.Ask2 + 0.2 };
-  const pick = { seller: [c.Step0 + 4.6, c.Ask1 + 1.0], problem: [c.Step1 + 3.8, c.Ask2 + 1.0] };
+  const asked = { [soru1]: c.Ask1 + 0.2, [soru2]: c.Ask2 + 0.2 };
+  const pick = { [soru1]: [c.Step0 + 4.6, c.Ask1 + 1.0], [soru2]: [c.Step1 + 3.8, c.Ask2 + 1.0] };
   const decided = T >= c.Step2 + 3.0;
   return (
     <Panel top={484 + kay(dar)} height={292}
@@ -216,7 +203,7 @@ function SlotBank({ T, c, vb }) {
           else if (skip) status = <Chip color={C.muted} text={C.muted} style={{ opacity: skipE }}>{M.sorulmadi}</Chip>;
           else status = <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 600, color: above ? C.green : C.muted }}>{T < c.Step0 + 3 ? '—' : n(v, 3)}</div>;
           return (
-            <div key={s.slot} style={{ position: 'relative', height: 48, background: hl > 0.5 ? C.greenLight : C.bg, display: 'grid', gridTemplateColumns: '180px minmax(0,1fr) 124px', gap: 16, alignItems: 'center', padding: '0 20px' }}>
+            <div key={s.slot} style={{ position: 'relative', height: 48, background: hl > 0.5 ? C.greenLight : C.bg, display: 'grid', gridTemplateColumns: `${slotSutun}px minmax(0,1fr) 124px`, gap: 16, alignItems: 'center', padding: '0 20px' }}>
               <div style={{ position: 'absolute', inset: 0, border: `3px solid ${C.green}`, opacity: hl }}></div>
               <div style={{ fontFamily: MONO, fontSize: 20, fontWeight: 600, color: isAsked ? C.green : C.ink }}>{s.slot}</div>
               <div style={{ fontFamily: SANS, fontSize: 20, color: skip ? C.muted : C.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: skip ? 1 - 0.4 * skipE : 1 }}>“{s.q}”</div>
@@ -231,6 +218,7 @@ function SlotBank({ T, c, vb }) {
 
 function TopOptions({ T, c, pb, probs, top, correctAt }) {
   const { M, pct } = useM();
+  const { OPTION_IDS, WINNER } = useO();
   const dar = useDar();
   const list = OPTION_IDS.map((id) => ({ id, p: lerp(probs[pb.a][id], probs[pb.b][id], pb.e) })).sort((x, y) => y.p - x.p).slice(0, 3);
   const decided = c01(MOTION.pop(T, c.Step2 + 3.0, 0.6));
@@ -269,6 +257,7 @@ function ResultCard({ T, at, children }) {
 
 function LavoirSide({ T, c }) {
   const { M } = useM();
+  const { TEXT, LAVOIR_PROBS, bizAd, kazanan, sorusuz, slotlar } = useO();
   const pb = blend(T, [c.Step0 + 1.4, c.Step1 + 0.4, c.Step2 + 0.4], 1.4);
   const vb = blend(T, [c.Step0 + 3.0, c.Step1 + 2.2, c.Step2 + 1.6], 1.0);
   const msgs = [
@@ -280,14 +269,14 @@ function LavoirSide({ T, c }) {
   ];
   return (
     <>
-      <SideTitle T={T} name="LAVOIR" sub={M.bizimAlt} badge={<Chip color={C.green} fill={C.green} text={C.bg}>{M.llmYok}</Chip>} />
+      <SideTitle T={T} name={bizAd} sub={M.bizimAlt} badge={<Chip color={C.green} fill={C.green} text={C.bg}>{M.llmYok}</Chip>} />
       <Chat T={T} msgs={msgs} height={400} />
       <SlotBank T={T} c={c} vb={vb} />
       <TopOptions T={T} c={c} pb={pb} probs={LAVOIR_PROBS} top={796} correctAt={c.Result + 0.3} />
       <ResultCard T={T} at={c.Result + 1.0}>
         <Label color={C.muted}>{M.sonuc}</Label>
-        <div style={{ fontFamily: HEAD, fontSize: 44, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.05, marginTop: 6 }}>{M.yonOn}<span style={{ color: C.green }}>logistics ✓</span></div>
-        <div style={{ fontFamily: SANS, fontSize: 24, color: C.muted, marginTop: 8 }}>{M.lavoirSonucAlt}</div>
+        <div style={{ fontFamily: HEAD, fontSize: 44, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.05, marginTop: 6 }}>{M.yonOn}<span style={{ color: C.green }}>{kazanan} ✓</span></div>
+        <div style={{ fontFamily: SANS, fontSize: 24, color: C.muted, marginTop: 8 }}>{M.lavoirSonucAlt({ soru: 2, atlanan: slotlar.length - 2, sorusuz })}</div>
       </ResultCard>
     </>
   );
@@ -295,6 +284,7 @@ function LavoirSide({ T, c }) {
 
 function LayaSide({ T, c, reorder }) {
   const { M, n, pct } = useM();
+  const { TEXT, LAYA_CONF, OPTION_IDS, LAYA_PROBS, LAYA_RANK, LAYA_GUESS, layaAd } = useO();
   const dar = useDar();
   const pb = blend(T, [c.Step0 + 1.4], 1.4);
   const gb = blend(T, [c.Step0 + 3.0], 1.0);
@@ -320,7 +310,7 @@ function LayaSide({ T, c, reorder }) {
   const ROW = 50, STEP = 52;
   return (
     <>
-      <SideTitle T={T} name="Laya" sub={M.layaAlt} badge={<Chip>{M.kararVeyaDevret}</Chip>} />
+      <SideTitle T={T} name={layaAd} sub={layaAd.length > 8 ? null : M.layaAlt} badge={<Chip>{M.kararVeyaDevret}</Chip>} />
       <Chat T={T} msgs={msgs} height={400} />
       <div style={{ opacity: 1 - 0.45 * idle }}>
         <Panel top={484 + kay(dar)} height={516} title={M.secenekler} color={C.cobalt} right={<Label color={C.muted}>{M.pBirim}</Label>}>
@@ -350,14 +340,14 @@ function LayaSide({ T, c, reorder }) {
               </div>
               <div style={{ fontFamily: HEAD, fontSize: 28, fontWeight: 900, letterSpacing: -1, minWidth: 80, textAlign: 'right' }}>{T < c.Step0 + 3 ? '—' : n(conf, 2)}</div>
             </div>
-            <div style={{ fontFamily: MONO, fontSize: 18, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, opacity: guess }}>{M.layaKural(n(LAYA_CONF, 2), n(0.85, 2))}</div>
+            <div style={{ fontFamily: MONO, fontSize: 18, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, opacity: guess }}>{M.layaKural(n(LAYA_CONF, 2), n(0.85, 2), LAYA_GUESS)}</div>
           </div>
         </Panel>
       </div>
       <ResultCard T={T} at={c.Result + 0.4}>
         <Label color={C.muted}>{M.sonuc}</Label>
         <div style={{ fontFamily: HEAD, fontSize: 44, fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.05, marginTop: 6 }}>{M.layaSonuc}</div>
-        <div style={{ fontFamily: SANS, fontSize: 24, color: C.muted, marginTop: 8 }}>{M.layaSonucAlt(n(LAYA_CONF, 2), n(0.85, 2), pct(LAYA_PROBS[1].refunds, 0))}<span style={{ color: C.red }}>✗</span></div>
+        <div style={{ fontFamily: SANS, fontSize: 24, color: C.muted, marginTop: 8 }}>{M.layaSonucAlt(n(LAYA_CONF, 2), n(0.85, 2), pct(LAYA_PROBS[1][LAYA_GUESS], 0), LAYA_GUESS)}<span style={{ color: C.red }}>✗</span></div>
       </ResultCard>
     </>
   );
@@ -403,6 +393,7 @@ function Point({ n, title, text, e, color = C.green, labelColor = C.green }) {
 
 function Scope({ T, c }) {
   const { M } = useM();
+  const { bizAd } = useO();
   const [f1, f2, f3] = M.akis;
   const [n1, n2, n3] = M.maddeler;
   const dar = useDar();
@@ -419,12 +410,12 @@ function Scope({ T, c }) {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, opacity: inE * out, padding: dar ? '80px 32px' : '96px 100px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: dar ? 'center' : 'flex-start', gap: 48 }}>
       <div style={{ opacity: title, transform: `translateY(${(1 - title) * 20}px)` }}>
         <Label color={C.green}>{M.fark}</Label>
-        <div style={{ fontFamily: HEAD, fontSize: dar ? 52 : 76, fontWeight: 900, letterSpacing: dar ? -2 : -3, lineHeight: 1.02, marginTop: 12, textWrap: 'balance' }}>{M.farkBaslik}</div>
+        <div style={{ fontFamily: HEAD, fontSize: dar ? 52 : 76, fontWeight: 900, letterSpacing: dar ? -2 : -3, lineHeight: 1.02, marginTop: 12, textWrap: 'balance' }}>{M.farkBaslik(bizAd)}</div>
       </div>
       <div style={{ display: 'flex', flexDirection: dar ? 'column' : 'row', alignItems: 'stretch' }}>
         <FlowBox e={b1} color={C.sandLine} fill={C.sand} textCol={C.sandLine} label={f1.label} title={f1.title} sub={f1.sub} />
         <BigArrow e={a1} />
-        <FlowBox e={b2} color={C.green} label={f2.label} title={f2.title} sub={f2.sub} />
+        <FlowBox e={b2} color={C.green} label={`${bizAd} · ${f2.label}`} title={f2.title} sub={f2.sub} />
         <BigArrow e={a2} />
         <FlowBox e={b3} color={C.ink} label={f3.label} title={f3.title} sub={f3.sub} textCol={C.muted} />
       </div>
@@ -471,12 +462,15 @@ function Piece({ T, dar }) {
 }
 
 export default function KarsilastirmaAkis() {
-  const { t } = useDil();
+  const { t, model } = useDil();
   const o = t.sorun.ornek;
+  const D = React.useMemo(() => hazirla(KARSILASTIRMA[model]), [model]);
   return (
-    <Oynatici sahneler={SAHNELER} cues={CUES} toplam={TOPLAM} genis={GENIS} dar={DAR}
-              durgunKare={DURGUN_KARE} sahneAd={o.sahne} etiket={o.etiket}>
-      {(T, dar) => <Piece T={T} dar={dar} />}
-    </Oynatici>
+    <OrnekCtx.Provider value={D}>
+      <Oynatici key={model} sahneler={SAHNELER} cues={CUES} toplam={TOPLAM} genis={GENIS} dar={DAR}
+                durgunKare={DURGUN_KARE} sahneAd={o.sahne} etiket={t.sorun.kart.etiket}>
+        {(T, dar) => <Piece T={T} dar={dar} />}
+      </Oynatici>
+    </OrnekCtx.Provider>
   );
 }

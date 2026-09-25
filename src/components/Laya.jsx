@@ -52,7 +52,7 @@ export default function Laya() {
       <section id="sorun" className="flex flex-col gap-6 min-w-0">
         <Baslik>{s.baslik}</Baslik>
         <Paragraf>{kalin(s.p)}</Paragraf>
-        <Kutu baslik={s.ornek.baslik} alt={s.ornek.alt} dipnot={s.ornek.dipnot}>
+        <Kutu baslik={s.kart.baslik} alt={s.kart.alt} dipnot={s.kart.dipnot}>
           <KarsilastirmaAkis />
         </Kutu>
       </section>

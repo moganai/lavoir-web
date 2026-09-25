@@ -1,11 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { MODEL_AD, MODEL_AD_TR, LAYA_GITHUB, LAYA_HF, LAVOIR_KOD, LAVOIR_HF } from './sabitler';
+import { METIN_TR } from './metin_tr';
 
-// Tum sayfa model adini bu sabitten okuyor. Isim
-// degisince yalnizca burayi (ve index.html basligini) guncellemek yeterli.
-export const MODEL_AD = 'LAVOIR';
-
-export const LAYA_GITHUB = 'https://github.com/NandhaKishorM/laya';
-export const LAYA_HF = 'https://huggingface.co/convaiinnovations/laya';
+// Model adi ve baglantilar sabitler.js'te; bilesenler eskisi gibi buradan alabilir.
+export { MODEL_AD, MODEL_AD_TR, LAYA_GITHUB, LAYA_HF };
 
 // Tek kaynak: her metin burada iki dilde durur. Bilesenler literal metin
 // tasimaz, yalnizca t.<bolum>.<anahtar> okur. Dizi olarak verilen
@@ -14,8 +12,19 @@ export const METIN = {
   tr: {
     kod: 'tr',
     ondalik: ',',
+    modelAd: MODEL_AD,
+    navSira: ['giris', 'laya', 'voi', 'veri', 'sonuc', 'kaynak'],
     nav: {
-      giris: 'GİRİŞ', laya: 'LAYA', voi: 'VOI', veri: 'VERİ', sonuc: 'SONUÇLAR', kaynak: 'KAYNAKLAR',
+      giris: 'GİRİŞ', moganbert: 'MOGANBERT-TR', laya: 'LAYA', voi: 'VOI', veri: 'VERİ', sonuc: 'SONUÇLAR', kaynak: 'KAYNAKLAR',
+    },
+    modelSec: {
+      et: 'MODEL',
+      goruntuleniyor: 'görüntüleniyor',
+      gec: 'bu modele geç →',
+      kartlar: {
+        en: { ad: MODEL_AD, dil: 'İNGİLİZCE', enc: 'ModernBERT-large · 421M', not: 'Makaledeki model: İngilizce iş akışları, gerçek müşteri konuşmaları (SGD, ABCD) ve Laya benchmark’ları.' },
+        tr: { ad: MODEL_AD_TR, dil: 'TÜRKÇE', enc: 'MoganBERT-TR · 164M', not: 'Kendi Türkçe encoder’ımız MoganBERT-TR üzerine: 16 Türkçe iş akışı ve Türkçe karar görevleri.' },
+      },
     },
     hero: {
       rozet: 'Mogan AI · 2026',
@@ -33,6 +42,9 @@ export const METIN = {
         { k: 'TEMEL', v: 'Laya karar mimarisi' },
       ],
       hfEt: 'MODEL', paperEt: 'MAKALE', kodEt: 'KOD',
+      logo: { src: 'lavoir-logo.png', w: 1018, h: 344, gen: 'max-w-[240px] sm:max-w-[280px] md:max-w-[320px]' },
+      // Bos birakilan baglanti tiklanamaz ve soluk gorunur.
+      baglanti: { hf: LAVOIR_HF, paper: '', kod: LAVOIR_KOD },
     },
     laya: {
       baslik: 'LAYA ÜZERİNE KURULU',
@@ -58,11 +70,13 @@ export const METIN = {
       p: ['Kullanıcı “Bilgilerim izinsiz paylaşılmış, ne yapabilirim?” yazdığında talep veri koruma birimine de hukuk birimine de ait olabilir. Tek geçişli bir karar modelinin bu durumda iki seçeneği var: ',
           'yine de en olası birimi seçmek ya da konuşmayı insana devretmek',
           '. Laya’nın önerdiği kullanım ikincisi: güven eşiğin altındaysa devret. Bu doğruluğu korur, ama her belirsiz konuşmayı insana yükler. Bir insan temsilci ise aynı durumda çoğu zaman tek bir soru sorup işi kendisi çözerdi.'],
-      ornek: {
+      kart: {
         baslik: MODEL_AD + ' VS LAYA',
         alt: 'aynı girdi · ecommerce_returns/00017',
         dipnot: 'Aynı belirsiz ilk mesaj iki modele de veriliyor. Laya’nın güveni 0,12’de kalıyor; önerilen kullanımla (güven < 0,85 → devret) konuşma insan kuyruğuna düşüyor, en iyi tahmini olan refunds da yanlış. ' + MODEL_AD + ' önce satıcıyı, sonra sorunu soruyor ve logistics’e doğru yönlendiriyor; kalan üç soruyu kararı değiştirmeyeceği için sormuyor. Soru sormasaydı returns_desk’i seçecekti.',
         etiket: 'Animasyon: aynı belirsiz mesajda Laya düşük güvenle konuşmayı insana devrediyor, ' + MODEL_AD + ' iki soru sorup doğru birime (logistics) yönlendiriyor.',
+      },
+      ornek: {
         sahne: { Intro: 'giriş', Step0: 'adım 0', Ask1: 'soru 1', Step1: 'adım 1', Ask2: 'soru 2', Step2: 'adım 2', Result: 'sonuç', Scope: 'fark' },
         m: {
           ayniGirdi: 'aynı girdi', adim: 'adım',
@@ -74,16 +88,16 @@ export const METIN = {
           soruldu: 'soruldu', sorulmadi: 'sorulmadı',
           secenekIlk3: 'seçenekler · ilk 3', secenekler: 'seçenekler', pBirim: 'P(birim)',
           sonuc: 'sonuç', yonOn: 'Yönlendirildi: ',
-          lavoirSonucAlt: '2 soru soruldu · 3’ü gereksiz olduğu için sorulmadı · soru sormadan returns_desk seçilecekti',
+          lavoirSonucAlt: (d) => `${d.soru} soru soruldu · ${d.atlanan} soru gereksiz olduğu için sorulmadı · soru sormadan ${d.sorusuz} seçilecekti`,
           devredildi: 'devredildi', bekleniyor: 'Bir insanın ya da bir LLM’in devralması bekleniyor…', kuyruk: 'KUYRUK',
           guven: 'güven',
-          layaKural: (g, e) => `güven ${g} < ${e} → devret · en iyi tahmin refunds ✗`,
+          layaKural: (g, e, tahmin) => `güven ${g} < ${e} → devret · en iyi tahmin ${tahmin} ✗`,
           layaSonuc: 'İnsana devredildi',
-          layaSonucAlt: (g, e, y) => `güven ${g} < ${e} · en iyi tahmin: refunds (${y}) `,
-          fark: 'fark', farkBaslik: 'Emin olmadığında LAVOIR eksik bilgiyi kendisi topluyor.',
+          layaSonucAlt: (g, e, y, tahmin) => `güven ${g} < ${e} · en iyi tahmin: ${tahmin} (${y}) `,
+          fark: 'fark', farkBaslik: (ad) => `Emin olmadığında ${ad} eksik bilgiyi kendisi topluyor.`,
           akis: [
             { label: 'müşteri', title: 'Mesaj', sub: 'belirsiz ilk mesaj' },
-            { label: 'LAVOIR · bu model', title: 'Sor · dur · yönlendir', sub: 'hangi soruyu soracağını ve ne zaman duracağını seçer' },
+            { label: 'bu model', title: 'Sor · dur · yönlendir', sub: 'hangi soruyu soracağını ve ne zaman duracağını seçer' },
             { label: 'yönlendirilen birim', title: 'Sorunu çöz', sub: 'insan ya da LLM, sonraki adım' },
           ],
           maddeler: [
@@ -125,11 +139,13 @@ export const METIN = {
       pGini: ['Bilgi değerinin bir üst sınırı var: bir sorunun doğru birimin olasılığını artırabileceği miktar, karar dağılımının ',
               'Gini katsayısını (1 − Σp²)',
               ' aşamaz. VOI başlığının çıkışı bu sınırla çarpılıyor; model eminken bilgi değeri yapısal olarak sıfıra iniyor ve soru sorulmuyor. Bu sınır olmadan model, eğitimde görmediği konuşmalarda neredeyse her seferinde soru sormak istiyordu.'],
-      ornek: {
+      kart: {
         baslik: 'VOI BAŞLIĞI NE ZAMAN DEVREYE GİRER?',
         alt: 'soru sorma döngüsü · telecom_support/00118',
         dipnot: 'Her ileri geçişte model, karar olasılıklarıyla birlikte henüz sorulmamış her slotun bilgi değerini (VOI) hesaplıyor; bunun için ek bir model çağrısı yok. En yüksek VOI eşiği (c = 0,05) geçerse o slotun sabit sorusu gönderiliyor, cevap konuşmaya eklenip model baştan çalışıyor. Hiçbir slot eşiği geçmediğinde ya da iki soru hakkı dolduğunda döngü bitiyor: model karar veriyor, hâlâ emin değilse konuşmayı insana devrediyor.',
         etiket: 'Animasyon: soru sorma döngüsü. Model iki kez döngüye girip request ve location slotlarını soruyor, üçüncü geçişte hiçbir slotun değeri eşiği geçmediği için döngüden çıkıp roaming kararını veriyor.',
+      },
+      ornek: {
         sahne: { Intro: 'giriş', Loop0: 'döngü 0', Loop1: 'döngü 1', Loop2: 'döngü 2', Ozet: 'özet' },
         // Animasyon ici metinler (modelin kendi girdi/ciktilari Ingilizce kalir).
         m: {
@@ -207,9 +223,9 @@ export const METIN = {
       pol: {
         b2: 'Hiç sormaz',
         b3: 'Emin değilse rastgele slot sorar',
-        b5: 'Conformal küme > 1 ise sorar',
+        b5: 'Olasılık kümesi > 1 ise sorar',
         voi: MODEL_AD + ' (VOI)',
-        oracle: 'Kesin VOI (üst sınır)',
+        oracle: 'Kesin VOI (açgözlü oracle)',
       },
       polDipnot: 'Bu karşılaştırma ilk değerlendirme turunda (önceki checkpoint, Gini sınırı yok) aynı test setiyle yapıldı; ana model için baseline’lar ayrıca koşulmadı, VOI satırı bu yüzden yukarıdaki tablodan biraz farklı. Kalın değer, oracle hariç sütunun en iyisi. — ölçülmedi.',
       // b2, b3: <=0,5 soru butcesinde VOI'nin farki (puan)
@@ -269,8 +285,19 @@ export const METIN = {
   en: {
     kod: 'en',
     ondalik: '.',
+    modelAd: MODEL_AD,
+    navSira: ['giris', 'laya', 'voi', 'veri', 'sonuc', 'kaynak'],
     nav: {
-      giris: 'HOME', laya: 'LAYA', voi: 'VOI', veri: 'DATA', sonuc: 'RESULTS', kaynak: 'REFERENCES',
+      giris: 'HOME', moganbert: 'MOGANBERT-TR', laya: 'LAYA', voi: 'VOI', veri: 'DATA', sonuc: 'RESULTS', kaynak: 'REFERENCES',
+    },
+    modelSec: {
+      et: 'MODEL',
+      goruntuleniyor: 'viewing',
+      gec: 'switch to this model →',
+      kartlar: {
+        en: { ad: MODEL_AD, dil: 'ENGLISH', enc: 'ModernBERT-large · 421M', not: 'The model in the paper: English workflows, real customer conversations (SGD, ABCD) and Laya’s benchmarks.' },
+        tr: { ad: MODEL_AD_TR, dil: 'TURKISH', enc: 'MoganBERT-TR · 164M', not: 'Built on MoganBERT-TR, our own Turkish encoder: 16 Turkish workflows and Turkish decision tasks.' },
+      },
     },
     hero: {
       rozet: 'Mogan AI · 2026',
@@ -288,6 +315,9 @@ export const METIN = {
         { k: 'FOUNDATION', v: 'Laya decision architecture' },
       ],
       hfEt: 'MODEL', paperEt: 'PAPER', kodEt: 'CODE',
+      logo: { src: 'lavoir-logo.png', w: 1018, h: 344, gen: 'max-w-[240px] sm:max-w-[280px] md:max-w-[320px]' },
+      // Bos birakilan baglanti tiklanamaz ve soluk gorunur.
+      baglanti: { hf: LAVOIR_HF, paper: '', kod: LAVOIR_KOD },
     },
     laya: {
       baslik: 'BUILT ON LAYA',
@@ -313,11 +343,13 @@ export const METIN = {
       p: ['When a user writes “My information was shared without my consent, what can I do?”, the request could belong to the privacy team or to legal. A single-pass decision model has two options here: ',
           'pick the most likely team anyway, or hand the conversation to a human',
           '. Laya recommends the second: hand off when confidence is below a threshold. That protects accuracy, but it puts every ambiguous conversation on a person. A human agent in the same spot would usually ask one question and resolve it themselves.'],
-      ornek: {
+      kart: {
         baslik: MODEL_AD + ' VS LAYA',
         alt: 'same input · ecommerce_returns/00017',
         dipnot: 'The same ambiguous first message goes to both models. Laya’s confidence stays at 0.12; with the recommended usage (confidence < 0.85 → hand off) the conversation lands in the human queue, and its best guess, refunds, is wrong anyway. ' + MODEL_AD + ' asks about the seller, then about the problem, and routes correctly to logistics; it skips the other three questions because they would not change the decision. Without asking it would have picked returns_desk.',
         etiket: 'Animation: on the same ambiguous message Laya hands off with low confidence, while ' + MODEL_AD + ' asks two questions and routes to the right team (logistics).',
+      },
+      ornek: {
         sahne: { Intro: 'intro', Step0: 'step 0', Ask1: 'question 1', Step1: 'step 1', Ask2: 'question 2', Step2: 'step 2', Result: 'result', Scope: 'difference' },
         m: {
           ayniGirdi: 'same input', adim: 'step',
@@ -329,16 +361,16 @@ export const METIN = {
           soruldu: 'asked', sorulmadi: 'not asked',
           secenekIlk3: 'options · top 3', secenekler: 'options', pBirim: 'P(team)',
           sonuc: 'result', yonOn: 'Routed to ',
-          lavoirSonucAlt: '2 questions asked · 3 skipped as unnecessary · without asking it would have picked returns_desk',
+          lavoirSonucAlt: (d) => `${d.soru} questions asked · ${d.atlanan} skipped as unnecessary · without asking it would have picked ${d.sorusuz}`,
           devredildi: 'handed off', bekleniyor: 'Waiting for a human or an LLM to pick up…', kuyruk: 'QUEUE',
           guven: 'confidence',
-          layaKural: (g, e) => `conf ${g} < ${e} → hand off · top guess refunds ✗`,
+          layaKural: (g, e, tahmin) => `conf ${g} < ${e} → hand off · top guess ${tahmin} ✗`,
           layaSonuc: 'Handed off to a human',
-          layaSonucAlt: (g, e, y) => `confidence ${g} < ${e} · best guess: refunds (${y}) `,
-          fark: 'the difference', farkBaslik: 'When unsure, LAVOIR gathers the missing information itself.',
+          layaSonucAlt: (g, e, y, tahmin) => `confidence ${g} < ${e} · best guess: ${tahmin} (${y}) `,
+          fark: 'the difference', farkBaslik: (ad) => `When unsure, ${ad} gathers the missing information itself.`,
           akis: [
             { label: 'customer', title: 'Message', sub: 'vague first message' },
-            { label: 'LAVOIR · this model', title: 'Ask · stop · route', sub: 'picks which question, and when to stop' },
+            { label: 'this model', title: 'Ask · stop · route', sub: 'picks which question, and when to stop' },
             { label: 'routed team', title: 'Solve the issue', sub: 'human or LLM, next step' },
           ],
           maddeler: [
@@ -380,11 +412,13 @@ export const METIN = {
       pGini: ['The value of information has an upper bound: the amount by which a question can raise the probability of the correct team cannot exceed the ',
               'Gini impurity of the decision distribution (1 − Σp²)',
               '. The VOI head’s output is multiplied by this bound, so when the model is confident the value of information drops to zero by construction and no question is asked. Without the bound the model wanted to ask in almost every conversation it had not seen in training.'],
-      ornek: {
+      kart: {
         baslik: 'WHEN DOES THE VOI HEAD ACT?',
         alt: 'the asking loop · telecom_support/00118',
         dipnot: 'On every forward pass the model computes, together with the decision probabilities, the value of information (VOI) of every slot not asked yet; there is no extra model call. If the highest VOI clears the threshold (c = 0.05), that slot’s fixed question is sent, the answer is appended to the conversation and the model runs again. The loop ends when no slot clears the threshold or the two-question budget is used: the model decides, or hands the conversation to a human if it is still unsure.',
         etiket: 'Animation: the asking loop. The model loops twice, asking the request and location slots; on the third pass no slot clears the threshold, so it exits the loop and decides roaming.',
+      },
+      ornek: {
         sahne: { Intro: 'intro', Loop0: 'loop 0', Loop1: 'loop 1', Loop2: 'loop 2', Ozet: 'summary' },
         m: {
           baslik: 'When does the VOI head act?',
@@ -460,9 +494,9 @@ export const METIN = {
       pol: {
         b2: 'Never asks',
         b3: 'Asks a random slot when unsure',
-        b5: 'Asks when the conformal set > 1',
+        b5: 'Asks when the probability set > 1',
         voi: MODEL_AD + ' (VOI)',
-        oracle: 'Exact VOI (upper bound)',
+        oracle: 'Exact VOI (greedy oracle)',
       },
       polDipnot: 'This comparison was run in the first evaluation round (earlier checkpoint, no Gini bound) on the same test set; baselines were not re-run for the main model, so the VOI row differs slightly from the table above. Bold marks the best value in the column, excluding the oracle. — not measured.',
       p3: (b2, b3) => ['With the same decision model and different asking rules, ', 'choosing the slot by VOI is what makes the difference', `: under a budget of less than half a question per conversation the VOI policy is ${b2} points more accurate than a model that never asks and ${b3} points more accurate than one that asks a random slot.`],
@@ -521,6 +555,26 @@ export const METIN = {
 
 const Ctx = createContext(null);
 
+// Iki sayfa tek uygulamada: secili model adreste ?model=tr olarak durur
+// (varsayilan Ingilizce LAVOIR). GitHub Pages'te ek yonlendirme gerekmez,
+// #bolum capalari da oldugu gibi calisir.
+function adrestenModel() {
+  try {
+    return new URLSearchParams(window.location.search).get('model') === 'tr' ? 'tr' : 'en';
+  } catch (e) { return 'en'; }
+}
+
+// Bolum bazinda bindirme: nesne bolumler anahtar anahtar birlesir, digerleri
+// (dizi, fonksiyon, metin) oldugu gibi degisir.
+function bindir(taban, ek) {
+  const out = { ...taban };
+  for (const [k, v] of Object.entries(ek)) {
+    const nesne = (x) => x && typeof x === 'object' && !Array.isArray(x);
+    out[k] = nesne(v) && nesne(taban[k]) ? { ...taban[k], ...v } : v;
+  }
+  return out;
+}
+
 export function DilProvider({ children }) {
   const [dil, setDil] = useState(() => {
     // localStorage bazi baglamlarda (gizli sekme, onizleme) erisimde bile
@@ -532,12 +586,35 @@ export function DilProvider({ children }) {
     return 'tr';
   });
 
+  const [model, setModelDurum] = useState(adrestenModel);
+
   useEffect(() => {
     try { window.localStorage.setItem('mogan-dil', dil); } catch (e) { /* yoksay */ }
     document.documentElement.lang = dil;
   }, [dil]);
 
-  return <Ctx.Provider value={{ dil, setDil, t: METIN[dil] }}>{children}</Ctx.Provider>;
+  // Tarayicinin geri / ileri tuslari modeli de degistirsin.
+  useEffect(() => {
+    const dinle = () => setModelDurum(adrestenModel());
+    window.addEventListener('popstate', dinle);
+    return () => window.removeEventListener('popstate', dinle);
+  }, []);
+
+  const setModel = (m) => {
+    if (m === model) return;
+    const u = new URL(window.location.href);
+    if (m === 'tr') u.searchParams.set('model', 'tr'); else u.searchParams.delete('model');
+    u.hash = '';
+    window.history.pushState(null, '', u);
+    setModelDurum(m);
+    window.scrollTo({ top: 0 });
+  };
+
+  const t = useMemo(() => (model === 'tr' ? bindir(METIN[dil], METIN_TR[dil]) : METIN[dil]), [dil, model]);
+
+  useEffect(() => { document.title = `${t.modelAd} · MoganAI`; }, [t]);
+
+  return <Ctx.Provider value={{ dil, setDil, model, setModel, t }}>{children}</Ctx.Provider>;
 }
 
 export function useDil() {
