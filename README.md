@@ -33,4 +33,5 @@ yerine bu ikisinden import eder, `Oynatici`'ye `(T, dar) => <Piece …/>` verili
 ## Yayına alma
 
 `.github/workflows/deploy.yml` ana sitedekiyle aynı: yeni repoya taşınınca `main`'e her itişte GitHub Pages'e kurar.
-Proje sayfası olarak yayında (`aleynatasdemir.github.io/lavoir.github.io/`); `vite.config.js` → `base: '/lavoir.github.io/'`. Görseller `import.meta.env.BASE_URL` ile çözülür.
+Taban yol (`base`) iş akışında repo adından otomatik alınır (`moganai/lavoir` → `/lavoir/`), elle ayar gerekmez.
+Görseller `import.meta.env.BASE_URL` ile çözülür.
