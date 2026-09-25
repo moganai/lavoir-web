@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LAVOIR · MoganAI</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "paper-base": "#f4f5f2",
+              "grain-fill": "#e9ece6",
+              "ink-black": "#1b211d",
+              "cobalt-deep": "#254a96",
+              "primary": "#02429f",
+              "primary-container": "#2d5bb8",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#ced9ff",
+              "secondary": "#006c48",
+              "secondary-container": "#92f7c3",
+              "seafoam-bright": "#52c994",
+              "surface": "#f5fbf4",
+              "surface-container-highest": "#dee4dd",
+              "surface-variant": "#dee4dd",
+              "on-surface-variant": "#434652",
+              "outline-variant": "#c3c6d4",
+              "error": "#ba1a1a",
+              "tertiary-fixed-dim": "#ffb68a"
+            },
+            borderRadius: {
+              DEFAULT: "0px",
+              sm: "0px",
+              md: "0px",
+              lg: "0px",
+              xl: "0px",
+              full: "0px"
+            },
+            fontFamily: {
+              display: ["'Hanken Grotesk'", "sans-serif"],
+              mono: ["'IBM Plex Mono'", "monospace"],
+              sans: ["'IBM Plex Sans'", "sans-serif"]
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-paper-base text-ink-black font-sans antialiased relative">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

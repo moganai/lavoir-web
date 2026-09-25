@@ -1,0 +1,55 @@
+{
+  "ornek_id": "test_seen/ecommerce_returns/00119/p1/a",
+  "model": {
+    "ad": "Lavoir (ModernBERT-large + karar head'i + VOI head'i)",
+    "checkpoint": "train_1999601/joint_v2",
+    "voi_tanimi": "Bu soruyu sorarsam, doğru seçeneğe verdiğim olasılık beklenen olarak ne kadar artar (0–1). Gini sınırlı: VOI ≤ 1 − Σp².",
+    "sicaklik_T": 1.0314
+  },
+  "karar_kurali": {"soru_esigi_c": 0.05, "kural": "En yüksek VOI > c ise o slotun sorusunu sor; değilse en olası seçeneğe karar ver."},
+  "girdi": {
+    "is_akisi": "ecommerce_returns",
+    "ortam": "the customer service chat of an online store with a marketplace",
+    "talimat": "Which team should handle this order problem?",
+    "ilk_musteri_mesaji": "*   Hi, my name is Nadia.\n*   I am reaching out because I would like a replacement.",
+    "secenekler": [
+      {"id": "returns_desk", "aciklama": "returns desk: standard returns and exchanges"},
+      {"id": "refunds", "aciklama": "refunds team: money back for faulty or wrong deliveries"},
+      {"id": "logistics", "aciklama": "logistics: replacements for damaged or wrong deliveries"},
+      {"id": "marketplace_support", "aciklama": "marketplace support: orders from third-party sellers"},
+      {"id": "warranty_service", "aciklama": "warranty service: products that stopped working after the return window"}
+    ],
+    "sorulabilecek_bilgiler": [
+      {"slot": "problem", "aciklama": "what is wrong with the order", "soru": "What is the problem with your order?"},
+      {"slot": "seller", "aciklama": "who sold the item", "soru": "Was the item sold by us directly or by a seller on our marketplace?"},
+      {"slot": "delivery_age", "aciklama": "how long ago the item was delivered", "soru": "When was it delivered: within the last 30 days or earlier?"},
+      {"slot": "wants", "aciklama": "what the customer would like", "soru": "Would you prefer a replacement or your money back?"},
+      {"slot": "customer_name", "aciklama": "the customer's first name", "soru": "May I have your first name, please?"}
+    ]
+  },
+  "adimlar": [
+    {
+      "adim": 0,
+      "konusma": [
+        {"role": "musteri", "text": "*   Hi, my name is Nadia.\n*   I am reaching out because I would like a replacement."}
+      ],
+      "olasiliklar": {"returns_desk": 0.34, "logistics": 0.301, "marketplace_support": 0.2923, "warranty_service": 0.0666, "refunds": 0.0001},
+      "voi": {"seller": 0.2157, "problem": 0.1737, "delivery_age": 0.0292, "wants": 0.0041, "customer_name": 0.0013},
+      "eylem": {"tur": "soru", "slot": "seller", "voi": 0.2157, "soru": "Was the item sold by us directly or by a seller on our marketplace?"},
+      "musteri_cevabi": "It was sold by a third party."
+    },
+    {
+      "adim": 1,
+      "konusma": [
+        {"role": "musteri", "text": "*   Hi, my name is Nadia.\n*   I am reaching out because I would like a replacement."},
+        {"role": "asistan", "text": "Was the item sold by us directly or by a seller on our marketplace?"},
+        {"role": "musteri", "text": "It was sold by a third party."}
+      ],
+      "olasiliklar": {"marketplace_support": 1.0, "logistics": 0.0, "warranty_service": 0.0, "returns_desk": 0.0, "refunds": 0.0},
+      "voi": {"problem": 0.0, "delivery_age": 0.0, "wants": 0.0, "customer_name": 0.0},
+      "eylem": {"tur": "karar", "secenek": "marketplace_support", "olasilik": 1.0, "dogru_mu": true, "neden": "kalan her sorunun VOI'si eşiğin (0.05) altında"}
+    }
+  ],
+  "sonuc": {"karar": "marketplace_support", "dogru_cevap": "marketplace_support", "soru_sayisi": 1, "sorulmadan_karar_olsaydi": "returns_desk"},
+  "gizli_musteri_profili": {"problem": "arrived_damaged", "seller": "third_party", "delivery_age": "within_30_days", "wants": "replacement", "customer_name": "Nadia"}
+}
